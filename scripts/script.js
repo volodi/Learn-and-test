@@ -4,8 +4,7 @@ let currentQuestionIndex = 0;
 let score = 0;
 let studentData = {};
 let selectedAnswerIndex = null;
-let isTestFinished = false; // Прапорець, щоб не відправляти результати двічі
-
+let isTestFinished = false; 
 
 const loginScreen = document.getElementById('login-screen');
 const quizScreen = document.getElementById('quiz-screen');
@@ -46,28 +45,35 @@ function startTest() {
     loginScreen.classList.add('hidden');
     quizScreen.classList.remove('hidden');
     
-    // Перехід у повноекранний режим
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(err => console.log(err));
     }
 
-    // Слухачі для античит-системи та закриття сторінки
+    // ОНОВЛЕНИЙ АНТИЧИТ: додано window.blur
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("pagehide", handlePageClose);
+    window.addEventListener("blur", handleWindowBlur); // Ловить клік поза сайтом (бічна панель)
 
     loadQuestion();
 }
 
-// 1. Якщо згорнув вкладку або відкрив іншу програму
+// 1. Якщо згорнув вкладку
 function handleVisibilityChange() {
     if (document.hidden && !isTestFinished && !quizScreen.classList.contains('hidden')) {
         alert("Порушення правил! Ви згорнули вкладку. Тест завершено достроково.");
-        showResults("Порушення (згорнув екран)");
+        showResults("Порушення (згорнув вкладку)");
     }
 }
 
-// 2. Попередження при спробі оновити/закрити
+// 2. Якщо клікнув у бічну панель (Gemini/ChatGPT), інше вікно або адресний рядок
+function handleWindowBlur() {
+    if (!isTestFinished && !quizScreen.classList.contains('hidden')) {
+        alert("Порушення правил! Ви клікнули поза межами сторінки тесту. Тест завершено достроково.");
+        showResults("Порушення (клік поза екраном)");
+    }
+}
+
 function handleBeforeUnload(e) {
     if (!isTestFinished && !quizScreen.classList.contains('hidden')) {
         e.preventDefault();
@@ -75,11 +81,9 @@ function handleBeforeUnload(e) {
     }
 }
 
-// 3. Фактичне закриття вкладки учнем
 function handlePageClose() {
     if (!isTestFinished && !quizScreen.classList.contains('hidden')) {
         isTestFinished = true;
-        // Відправляємо збережений бал на момент закриття
         sendDataToSheet(`${score} (Закрив сайт на ${currentQuestionIndex + 1} питанні)`);
     }
 }
@@ -117,7 +121,6 @@ function selectOption(selectedBtn, selectedIndex) {
 }
 
 function nextQuestion() {
-    // Перевіряємо правильність
     const currentQ = questions[currentQuestionIndex];
     if (selectedAnswerIndex === currentQ.correct) {
         score++;
@@ -132,19 +135,18 @@ function nextQuestion() {
     }
 }
 
-// Універсальна функція відправки даних
 function sendDataToSheet(finalScoreText) {
     fetch(GOOGLE_SHEET_URL, {
         method: "POST",
         mode: "no-cors",
-        keepalive: true, // ВАЖЛИВО: дозволяє відправити дані навіть коли вкладка вмирає
+        keepalive: true,
         headers: {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
             name: studentData.name,
             class: studentData.class,
-            score: finalScoreText, // Сюди потрапить або просто бал, або бал + причина зупинки
+            score: finalScoreText,
             total: questions.length
         })
     }).catch(err => console.error("Помилка відправки", err));
@@ -153,10 +155,11 @@ function sendDataToSheet(finalScoreText) {
 function showResults(reason) {
     isTestFinished = true;
 
-    // Вимикаємо слухачі, бо тест завершено
+    // Вимикаємо всі слухачі
     document.removeEventListener("visibilitychange", handleVisibilityChange);
     window.removeEventListener("beforeunload", handleBeforeUnload);
     window.removeEventListener("pagehide", handlePageClose);
+    window.removeEventListener("blur", handleWindowBlur);
     
     if (document.fullscreenElement) {
         document.exitFullscreen().catch(err => console.log(err));
@@ -169,16 +172,14 @@ function showResults(reason) {
     const scoreElement = document.getElementById('score');
 
     if (reason === "Завершено") {
-        // Учень пройшов тест чесно до кінця
         scoreElement.innerText = `${score} / ${questions.length}`;
-        sendDataToSheet(score); // Відправляємо тільки число
+        sendDataToSheet(score);
         
         const successMsg = document.createElement('p');
         successMsg.className = "text-green-600 font-semibold mt-4";
         successMsg.innerText = "✓ Результат успішно збережено!";
         resultScreen.appendChild(successMsg);
     } else {
-        // Тест перервано через згортання екрану
         scoreElement.innerText = `${score} / ${questions.length} (Достроково)`;
         scoreElement.classList.remove('text-blue-600');
         scoreElement.classList.add('text-red-600');
