@@ -6,21 +6,34 @@ let studentData = {};
 let selectedAnswerIndex = null;
 let isTestFinished = false; 
 
+
 const loginScreen = document.getElementById('login-screen');
 const quizScreen = document.getElementById('quiz-screen');
 const resultScreen = document.getElementById('result-screen');
 const questionText = document.getElementById('question-text');
+const questionImage = document.getElementById('question-image'); // Елемент картинки
 const optionsContainer = document.getElementById('options-container');
 const nextBtn = document.getElementById('next-btn');
 const questionTracker = document.getElementById('question-tracker');
 const startBtn = document.getElementById('start-btn');
 
+// Функція для випадкового перемішування масиву
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
 async function loadQuestionsData() {
     try {
-        const response = await fetch('questions/questions.json');
+        const response = await fetch('questions/Class8Section2.json');
         if (!response.ok) throw new Error('Помилка завантаження');
         
         questions = await response.json();
+        
+        // ПЕРЕМІШУЄМО ПИТАННЯ ВІДРАЗУ ПІСЛЯ ЗАВАНТАЖЕННЯ
+        shuffleArray(questions);
         
         startBtn.disabled = false;
         startBtn.innerText = "Почати тест";
@@ -49,16 +62,14 @@ function startTest() {
         document.documentElement.requestFullscreen().catch(err => console.log(err));
     }
 
-    // ОНОВЛЕНИЙ АНТИЧИТ: додано window.blur
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("pagehide", handlePageClose);
-    window.addEventListener("blur", handleWindowBlur); // Ловить клік поза сайтом (бічна панель)
+    window.addEventListener("blur", handleWindowBlur); 
 
     loadQuestion();
 }
 
-// 1. Якщо згорнув вкладку
 function handleVisibilityChange() {
     if (document.hidden && !isTestFinished && !quizScreen.classList.contains('hidden')) {
         alert("Порушення правил! Ви згорнули вкладку. Тест завершено достроково.");
@@ -66,7 +77,6 @@ function handleVisibilityChange() {
     }
 }
 
-// 2. Якщо клікнув у бічну панель (Gemini/ChatGPT), інше вікно або адресний рядок
 function handleWindowBlur() {
     if (!isTestFinished && !quizScreen.classList.contains('hidden')) {
         alert("Порушення правил! Ви клікнули поза межами сторінки тесту. Тест завершено достроково.");
@@ -96,6 +106,15 @@ function loadQuestion() {
     const currentQ = questions[currentQuestionIndex];
     questionText.innerText = currentQ.question;
     questionTracker.innerText = `Питання ${currentQuestionIndex + 1} з ${questions.length}`;
+
+    // Перевіряємо, чи є картинка до цього питання
+    if (currentQ.image) {
+        questionImage.src = currentQ.image;
+        questionImage.classList.remove('hidden');
+    } else {
+        questionImage.src = "";
+        questionImage.classList.add('hidden');
+    }
 
     currentQ.options.forEach((option, index) => {
         const btn = document.createElement('button');
@@ -155,7 +174,6 @@ function sendDataToSheet(finalScoreText) {
 function showResults(reason) {
     isTestFinished = true;
 
-    // Вимикаємо всі слухачі
     document.removeEventListener("visibilitychange", handleVisibilityChange);
     window.removeEventListener("beforeunload", handleBeforeUnload);
     window.removeEventListener("pagehide", handlePageClose);

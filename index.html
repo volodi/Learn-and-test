@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Система тестування</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
-
     <script src="scripts/script.js" defer></script>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen text-gray-800">
@@ -26,7 +22,9 @@
             <div class="flex justify-between items-center mb-4">
                 <span id="question-tracker" class="text-sm font-semibold text-gray-500"></span>
             </div>
-            <h2 id="question-text" class="text-xl font-bold mb-6"></h2>
+            <h2 id="question-text" class="text-xl font-bold mb-4"></h2>
+            <!-- Контейнер для картинки -->
+            <img id="question-image" class="w-full max-h-64 object-contain mb-6 hidden rounded shadow-sm border border-gray-100" src="" alt="Ілюстрація до питання">
             <div id="options-container" class="space-y-3"></div>
             <button onclick="nextQuestion()" id="next-btn" class="w-full bg-green-600 text-white p-3 rounded font-semibold mt-6 hidden hover:bg-green-700 transition">Наступне питання</button>
         </div>
